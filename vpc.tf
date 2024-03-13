@@ -6,11 +6,11 @@ resource "google_compute_network" "vpc_network" {
 
 # Create subnets
 resource "google_compute_subnetwork" "subnet" {
-  count         = length(var.deployment_regions)
-  name          = format("subnet-%s-%d", var.deployment_regions[count.index], count.index + 1)
-  ip_cidr_range = cidrsubnet("10.0.0.0/16", 8, count.index)
-  network       = google_compute_network.vpc_network.self_link
-  region        = var.deployment_regions[count.index]
+  count                    = length(var.deployment_regions)
+  name                     = format("subnet-%s-%d", var.deployment_regions[count.index], count.index + 1)
+  ip_cidr_range            = cidrsubnet("10.0.0.0/16", 8, count.index)
+  network                  = google_compute_network.vpc_network.self_link
+  region                   = var.deployment_regions[count.index]
   private_ip_google_access = true
 }
 
@@ -24,11 +24,11 @@ resource "google_compute_router" "router" {
 
 # Create Cloud NAT in each region
 resource "google_compute_router_nat" "cloud_nat" {
-  count   = length(var.deployment_regions)
-  name    = format("cloud-nat-%d", count.index + 1)
-  router  = element(google_compute_router.router.*.name, count.index)
-  region  = element(var.deployment_regions, count.index)
-  nat_ip_allocate_option = "AUTO_ONLY"
+  count                              = length(var.deployment_regions)
+  name                               = format("cloud-nat-%d", count.index + 1)
+  router                             = element(google_compute_router.router.*.name, count.index)
+  region                             = element(var.deployment_regions, count.index)
+  nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS"
 
   subnetwork {

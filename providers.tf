@@ -8,8 +8,8 @@ terraform {
 }
 
 provider "google" {
-  project     = var.gcp_project_id
-  region      = var.default_region
+  project = var.gcp_project_id
+  region  = var.default_region
 }
 
 data "google_compute_zones" "available" {}
