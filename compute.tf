@@ -18,7 +18,9 @@ resource "google_compute_instance_template" "server" {
     project_name = var.project_name
   }
 
-  metadata_startup_script = templatefile("${path.module}/scripts/server.sh", {})
+  metadata_startup_script = templatefile("${path.module}/scripts/server.sh", {
+    redis_host = google_redis_instance.cache[count.index].host
+  })
 
   tags = ["server"]
 
@@ -33,6 +35,7 @@ resource "google_compute_region_instance_group_manager" "server" {
   name               = "instance-group-manager-${var.deployment_regions[count.index]}"
   base_instance_name = "${var.project_name}-instance-${var.deployment_regions[count.index]}"
   region             = var.deployment_regions[count.index]
+
   version {
     instance_template = element(google_compute_instance_template.server.*.self_link, count.index)
   }
@@ -43,15 +46,23 @@ resource "google_compute_region_instance_group_manager" "server" {
     name = "http"
     port = 80
   }
+
+  update_policy {
+    type                  = "PROACTIVE"
+    minimal_action        = "REPLACE"
+    max_surge_fixed       = 2
+    max_unavailable_fixed = 1
+  }
 }
 
 # Backend service that routes incoming traffic to the appropriate instance group
-resource "google_compute_backend_service" "backend" {
-  name                  = "global-backend"
+resource "google_compute_backend_service" "server" {
+  name                  = "${var.project_name}-server-backend"
   protocol              = "HTTP"
   timeout_sec           = 10
   enable_cdn            = false
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  session_affinity      = "CLIENT_IP"
 
   dynamic "backend" {
     for_each = google_compute_region_instance_group_manager.server
@@ -63,35 +74,41 @@ resource "google_compute_backend_service" "backend" {
     }
   }
 
-  health_checks = [google_compute_health_check.default.self_link]
+  health_checks = [google_compute_health_check.server.self_link]
 }
 
 # Health check that checks the health of the instances in the instance group
-resource "google_compute_health_check" "default" {
-  name               = "default"
+resource "google_compute_health_check" "server" {
+  name               = "${var.project_name}-server"
   check_interval_sec = 1
   timeout_sec        = 1
   http_health_check {
-    port = "80"
+    port         = "80"
+    request_path = "/health"
   }
 }
 
 # URL map that maps URLs to backend services
-resource "google_compute_url_map" "url_map" {
-  name            = "url-map"
-  default_service = google_compute_backend_service.backend.self_link
+resource "google_compute_url_map" "server" {
+  name            = "${var.project_name}-server-url-map"
+  default_service = google_compute_backend_service.server.self_link
 }
 
 # HTTP proxy that uses the URL map to route incoming requests
-resource "google_compute_target_http_proxy" "proxy" {
-  name    = "http-proxy"
-  url_map = google_compute_url_map.url_map.self_link
+resource "google_compute_target_http_proxy" "server" {
+  name    = "${var.project_name}-server-http-proxy"
+  url_map = google_compute_url_map.server.self_link
+}
+
+resource "google_compute_global_address" "server" {
+  name = "server-static-ip"
 }
 
 # Global forwarding rule that forwards incoming traffic to the HTTP proxy
-resource "google_compute_global_forwarding_rule" "forwarding_rule" {
-  name                  = "forwarding-rule"
-  target                = google_compute_target_http_proxy.proxy.self_link
+resource "google_compute_global_forwarding_rule" "server" {
+  name                  = "${var.project_name}-server-forwarding-rule"
+  target                = google_compute_target_http_proxy.server.self_link
+  ip_address            = google_compute_global_address.server.address
   port_range            = "80"
   load_balancing_scheme = "EXTERNAL_MANAGED"
 }
