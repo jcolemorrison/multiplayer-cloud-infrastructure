@@ -1,31 +1,43 @@
 #!/bin/bash
 
-apt update && apt install -y unzip
+# Install dependencies
+apt-get update
+apt-get install -y curl unzip ca-certificates gnupg
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/nodesource.gpg
+NODE_MAJOR=20
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/nodesource.list
+apt-get update
+apt-get install -y nodejs
 
-# Install Fake Service
-curl -LO https://github.com/nicholasjackson/fake-service/releases/download/v0.23.1/fake_service_linux_amd64.zip
-unzip fake_service_linux_amd64.zip
-mv fake-service /usr/local/bin
-chmod +x /usr/local/bin/fake-service
+# Download and unzip the application
+curl -LO "https://github.com/jcolemorrison/multiplayer-cloud-server/archive/refs/tags/v${APP_VERSION}.zip"
+unzip "v${APP_VERSION}.zip"
+cd "multiplayer-cloud-server-${APP_VERSION}"
 
-# Fake Service Systemd Unit File
-cat > /etc/systemd/system/server.service <<- EOF
+# Install Node.js dependencies and build the application
+npm install
+npm run build
+
+# Create a systemd unit file
+cat > /etc/systemd/system/game.service <<- EOF
 [Unit]
-Description=Server
-After=syslog.target network.target
+Description=Node.js Game App
+After=network.target
 
 [Service]
-Environment="MESSAGE='Hello from the Test Server Service'"
-Environment="NAME=server"
-Environment="LISTEN_ADDR=0.0.0.0:80"
-ExecStart=/usr/local/bin/fake-service
-ExecStop=/bin/sleep 5
+Environment="NODE_ENV=${NODE_ENV}"
+Environment="REDIS_HOST=${REDIS_HOST}"
+Environment="PORT=${PORT}"
+WorkingDirectory=/multiplayer-cloud-server-${APP_VERSION}
+ExecStart=/usr/bin/node dist/index.js
 Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-# Reload unit files and start the database service
+# Reload systemd, enable and start the service
 systemctl daemon-reload
-systemctl start server
+systemctl enable game
+systemctl start game

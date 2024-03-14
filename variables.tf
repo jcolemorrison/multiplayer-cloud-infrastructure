@@ -19,3 +19,19 @@ variable "deployment_regions" {
   type        = list(string)
   default     = ["us-central1", "us-west1", "us-east1"]
 }
+
+variable "server_port" {
+  description = "The port the server will listen on"
+  type        = number
+  default     = 80
+}
+
+variable "environment_type" {
+  description = "The environment type (e.g., 'development', 'staging', 'production')"
+  type        = string
+}
+
+variable "app_version" {
+  description = "The version of the application to be deployed (e.g., 'v1.0.0')"
+  type        = string
+}
