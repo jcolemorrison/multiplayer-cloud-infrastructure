@@ -10,7 +10,7 @@ apt-get update
 apt-get install -y nodejs
 
 # Download and unzip the application
-curl -LO "https://github.com/jcolemorrison/multiplayer-cloud-server/archive/refs/tags/v${APP_VERSION}.zip"
+curl -LO "https://github.com/jcolemorrison/multiplayer-cloud-server/archive/refs/tags/${APP_VERSION}.zip"
 unzip "v${APP_VERSION}.zip"
 cd "multiplayer-cloud-server-${APP_VERSION}"
 
