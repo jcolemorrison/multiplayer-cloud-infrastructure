@@ -12,4 +12,7 @@ provider "google" {
   region  = var.default_region
 }
 
-data "google_compute_zones" "available" {}
+data "google_compute_zones" "available" {
+  count = length(var.deployment_regions)
+  region = var.deployment_regions[count.index]
+}
