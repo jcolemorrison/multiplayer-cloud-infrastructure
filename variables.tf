@@ -35,3 +35,8 @@ variable "app_version" {
   description = "The version of the application to be deployed (e.g., '1.0.0' sans the 'v')"
   type        = string
 }
+
+variable "client_site_service_account_email" {
+  description = "The email of the service account"
+  type        = string
+}

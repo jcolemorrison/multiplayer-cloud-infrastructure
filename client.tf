@@ -16,6 +16,15 @@ resource "google_storage_bucket_iam_member" "client_public_read" {
   member = "allUsers"
 }
 
+# Allow the client site svc account write access to the bucket
+resource "google_storage_bucket_iam_binding" "client_svc_writer" {
+  bucket = google_storage_bucket.client_site_bucket.name
+  role   = "roles/storage.objectAdmin"
+  members = [
+    "serviceAccount:${var.client_site_service_account_email}",
+  ]
+}
+
 # Load balancer and CDN for client site bucket
 resource "google_compute_backend_bucket" "client_backend_bucket" {
   name        = "${var.project_name}-client-bucket"
