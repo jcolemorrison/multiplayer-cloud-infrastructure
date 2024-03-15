@@ -37,7 +37,7 @@ resource "google_compute_router_nat" "cloud_nat" {
   }
 }
 
-# Create a firewall rule that allows traffic on port 80
+# Create a firewall rule that allows any traffic on port 80
 resource "google_compute_firewall" "server_firewall" {
   name    = "server-firewall"
   network = google_compute_network.vpc_network.self_link
@@ -46,4 +46,17 @@ resource "google_compute_firewall" "server_firewall" {
     ports    = ["80"]
   }
   source_ranges = ["0.0.0.0/0"]
+}
+
+# Create a firewall rule that allows internal VPC traffic on port 6379
+resource "google_compute_firewall" "redis_firewall" {
+  name    = "redis-firewall"
+  network = google_compute_network.vpc_network.self_link
+
+  allow {
+    protocol = "tcp"
+    ports    = ["6379"]
+  }
+
+  source_ranges = ["10.0.0.0/16"]
 }
