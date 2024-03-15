@@ -37,6 +37,13 @@ resource "google_compute_url_map" "client" {
   default_service = google_compute_backend_bucket.client_backend_bucket.self_link
 }
 
+# Grant the client site service account ability to invalidate CDN cache
+resource "google_project_iam_member" "client_service_account_lb_admin" {
+  project = var.gcp_project_id
+  role    = "roles/compute.loadBalancerAdmin"
+  member  = "serviceAccount:${var.client_site_service_account_email}"
+}
+
 resource "google_compute_target_http_proxy" "client" {
   name    = "${var.project_name}-client-http-proxy"
   url_map = google_compute_url_map.client.self_link
