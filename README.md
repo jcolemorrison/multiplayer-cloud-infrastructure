@@ -10,3 +10,9 @@ The Google Cloud Platform facing cloud infrastructure for a scalable multiplayer
 1. Either one user or service account with editor (or scoped permissions) to deploy this project.
 
 2. An empty service account in the project to be used for the client site bucket.
+
+3. Enabling the following APIs:
+  - Compute Engine
+  - Cloud Resource Manager
+  - Google Cloud Memorystore for Redis
+  - Google Storage

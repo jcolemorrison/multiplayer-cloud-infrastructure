@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Install Google Cloud Logging agent
+curl -sSO https://dl.google.com/cloudagents/add-logging-agent-repo.sh
+bash add-logging-agent-repo.sh
+apt-get update
+apt-get install -y 'google-fluentd=1.*' google-fluentd-catch-all-config-structured
+service google-fluentd start
+
 # Install dependencies
 apt-get update
 apt-get install -y curl unzip ca-certificates gnupg
@@ -8,6 +15,16 @@ NODE_MAJOR=20
 echo "deb [signed-by=/etc/apt/trusted.gpg.d/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/nodesource.list
 apt-get update
 apt-get install -y nodejs
+
+# Install rsyslog if it's not already installed
+if ! command -v rsyslogd &> /dev/null
+then
+    apt-get install -y rsyslog
+fi
+
+# Start rsyslog
+systemctl start rsyslog
+systemctl enable rsyslog
 
 # Download and unzip the application
 curl -LO "https://github.com/jcolemorrison/multiplayer-cloud-server/archive/refs/tags/v${APP_VERSION}.zip"
@@ -30,6 +47,9 @@ Environment="REDIS_HOST=${REDIS_HOST}"
 Environment="PORT=${PORT}"
 WorkingDirectory=/multiplayer-cloud-server-${APP_VERSION}
 ExecStart=/usr/bin/node dist/index.js
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=game
 Restart=always
 RestartSec=3
 
