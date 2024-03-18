@@ -91,6 +91,17 @@ resource "google_compute_health_check" "server" {
   }
 }
 
+# Create a firewall rule that allows any traffic on port 80
+resource "google_compute_firewall" "server_firewall" {
+  name    = "server-firewall"
+  network = google_compute_network.vpc_network.self_link
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+  source_ranges = ["0.0.0.0/0"]
+}
+
 # URL map that maps URLs to backend services
 resource "google_compute_url_map" "server" {
   name            = "${var.project_name}-server-url-map"
