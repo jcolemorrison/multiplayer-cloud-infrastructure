@@ -1,3 +1,7 @@
+data "google_compute_ssl_certificate" "server_cert" {
+  name = var.server_cert_name
+}
+
 # Instance template that defines the properties for each instance in the instance group
 resource "google_compute_instance_template" "server" {
   count        = length(var.deployment_regions)
@@ -75,7 +79,7 @@ resource "google_compute_firewall" "server_firewall" {
   network = google_compute_network.vpc_network.self_link
   allow {
     protocol = "tcp"
-    ports    = ["80"]
+    ports    = ["80", "443"]
   }
   source_ranges = ["0.0.0.0/0"]
 }
@@ -114,15 +118,31 @@ resource "google_compute_target_http_proxy" "server" {
   url_map = google_compute_url_map.server.self_link
 }
 
+# HTTPS proxy that uses the URL map to route incoming requests
+resource "google_compute_target_https_proxy" "server" {
+  name             = "${var.project_name}-server-https-proxy"
+  url_map          = google_compute_url_map.server.self_link
+  ssl_certificates = [data.google_compute_ssl_certificate.server_cert.self_link]
+}
+
 resource "google_compute_global_address" "server" {
   name = "server-static-ip"
 }
 
 # Global forwarding rule that forwards incoming traffic to the HTTP proxy
-resource "google_compute_global_forwarding_rule" "server" {
-  name                  = "${var.project_name}-server-forwarding-rule"
+resource "google_compute_global_forwarding_rule" "server_http" {
+  name                  = "${var.project_name}-server-http-rule"
   target                = google_compute_target_http_proxy.server.self_link
   ip_address            = google_compute_global_address.server.address
-  port_range            = var.server_port
+  port_range            = "80"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+}
+
+# Global forwarding rule that forwards incoming traffic to the HTTPS proxy
+resource "google_compute_global_forwarding_rule" "server_https" {
+  name                  = "${var.project_name}-server-https-rule"
+  target                = google_compute_target_https_proxy.server.self_link
+  ip_address            = google_compute_global_address.server.address
+  port_range            = "443"
   load_balancing_scheme = "EXTERNAL_MANAGED"
 }
