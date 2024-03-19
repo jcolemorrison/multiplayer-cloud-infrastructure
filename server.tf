@@ -58,28 +58,6 @@ resource "google_compute_region_instance_group_manager" "server" {
   }
 }
 
-# Backend service that routes incoming traffic to the appropriate instance group
-resource "google_compute_backend_service" "server" {
-  name                  = "${var.project_name}-server-backend"
-  protocol              = "HTTP"
-  timeout_sec           = 10
-  enable_cdn            = false
-  load_balancing_scheme = "EXTERNAL_MANAGED"
-  session_affinity      = "CLIENT_IP"
-
-  dynamic "backend" {
-    for_each = google_compute_region_instance_group_manager.server
-    content {
-      group           = backend.value.instance_group
-      balancing_mode  = "UTILIZATION"
-      max_utilization = 0.8
-      capacity_scaler = 1
-    }
-  }
-
-  health_checks = [google_compute_health_check.server.self_link]
-}
-
 # Health check that checks the health of the instances in the instance group
 resource "google_compute_health_check" "server" {
   name               = "${var.project_name}-server"
@@ -100,6 +78,28 @@ resource "google_compute_firewall" "server_firewall" {
     ports    = ["80"]
   }
   source_ranges = ["0.0.0.0/0"]
+}
+
+# Backend service that routes incoming traffic to the appropriate instance group
+resource "google_compute_backend_service" "server" {
+  name                  = "${var.project_name}-server-backend"
+  protocol              = "HTTP"
+  timeout_sec           = 10
+  enable_cdn            = false
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  session_affinity      = "CLIENT_IP"
+
+  dynamic "backend" {
+    for_each = google_compute_region_instance_group_manager.server
+    content {
+      group           = backend.value.instance_group
+      balancing_mode  = "UTILIZATION"
+      max_utilization = 0.8
+      capacity_scaler = 1
+    }
+  }
+
+  health_checks = [google_compute_health_check.server.self_link]
 }
 
 # URL map that maps URLs to backend services
