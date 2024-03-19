@@ -48,7 +48,7 @@ resource "google_project_iam_member" "client_service_account_lb_admin" {
   member  = "serviceAccount:${var.client_site_service_account_email}"
 }
 
-resource "google_compute_target_http_proxy" "client" {
+resource "google_compute_target_http_proxy" "client_http" {
   name    = "${var.project_name}-client-http-proxy"
   url_map = google_compute_url_map.client.self_link
 }
