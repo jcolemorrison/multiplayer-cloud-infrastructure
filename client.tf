@@ -1,3 +1,7 @@
+data "google_compute_ssl_certificate" "client_cert" {
+  name = var.client_cert_name
+}
+
 # Create a storage bucket
 resource "google_storage_bucket" "client_site_bucket" {
   name     = "${var.project_name}-bucket"
@@ -49,13 +53,29 @@ resource "google_compute_target_http_proxy" "client" {
   url_map = google_compute_url_map.client.self_link
 }
 
+# HTTPS proxy that uses the URL map to route incoming requests
+resource "google_compute_target_https_proxy" "client_https" {
+  name             = "${var.project_name}-client-https-proxy"
+  url_map          = google_compute_url_map.client.self_link
+  ssl_certificates = [data.google_compute_ssl_certificate.client_cert.self_link]
+}
+
 resource "google_compute_global_address" "client" {
   name = "client-static-ip"
 }
 
-resource "google_compute_global_forwarding_rule" "client" {
-  name       = "${var.project_name}-client-forwarding-rule"
-  target     = google_compute_target_http_proxy.client.self_link
+# Global forwarding rule that forwards incoming traffic to the HTTP proxy
+resource "google_compute_global_forwarding_rule" "client_http" {
+  name       = "${var.project_name}-client-http-forwarding-rule"
+  target     = google_compute_target_http_proxy.client_http.self_link
   ip_address = google_compute_global_address.client.address
   port_range = "80"
+}
+
+# Global forwarding rule that forwards incoming traffic to the HTTPS proxy
+resource "google_compute_global_forwarding_rule" "client_https" {
+  name       = "${var.project_name}-client-https-forwarding-rule"
+  target     = google_compute_target_https_proxy.client_https.self_link
+  ip_address = google_compute_global_address.client.address
+  port_range = "443"
 }
