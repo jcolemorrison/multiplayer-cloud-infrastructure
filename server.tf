@@ -19,9 +19,9 @@ resource "google_compute_instance_template" "server" {
   }
 
   metadata_startup_script = templatefile("${path.module}/scripts/server.sh", {
-    REDIS_HOST = google_redis_instance.cache[count.index].host
-    NODE_ENV = var.environment_type
-    PORT = var.server_port
+    REDIS_HOST  = google_redis_instance.cache[count.index].host
+    NODE_ENV    = var.environment_type
+    PORT        = var.server_port
     APP_VERSION = var.app_version
   })
 
@@ -64,7 +64,7 @@ resource "google_compute_health_check" "server" {
   check_interval_sec = 1
   timeout_sec        = 1
   http_health_check {
-    port         = "${var.server_port}"
+    port         = var.server_port
     request_path = "/health"
   }
 }
@@ -123,6 +123,6 @@ resource "google_compute_global_forwarding_rule" "server" {
   name                  = "${var.project_name}-server-forwarding-rule"
   target                = google_compute_target_http_proxy.server.self_link
   ip_address            = google_compute_global_address.server.address
-  port_range            = "${var.server_port}"
+  port_range            = var.server_port
   load_balancing_scheme = "EXTERNAL_MANAGED"
 }

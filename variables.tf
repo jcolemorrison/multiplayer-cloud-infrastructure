@@ -36,7 +36,17 @@ variable "app_version" {
   type        = string
 }
 
+variable "server_cert_name" {
+  description = "value of the server certificate name"
+  type        = string
+}
+
 variable "client_site_service_account_email" {
   description = "The email of the service account"
+  type        = string
+}
+
+variable "client_cert_name" {
+  description = "value of the client certificate name"
   type        = string
 }
