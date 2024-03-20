@@ -22,6 +22,19 @@ then
     apt-get install -y rsyslog
 fi
 
+# Configure rsyslog to read from the journal
+cat > /etc/rsyslog.d/99-systemd.conf <<- EOF
+module(load="imuxsock") # provides support for local system logging
+module(load="imjournal" StateFile="imjournal.state") # provides access to the systemd journal
+
+# set the default message size to 64k, which should be large enough for most journal messages
+$MaxMessageSize 64k
+
+# Forward logs from the game service to /var/log/syslog
+if $programname == 'game' then /var/log/syslog
+& stop
+EOF
+
 # Start rsyslog
 systemctl start rsyslog
 systemctl enable rsyslog
